@@ -1,4 +1,4 @@
-import { renderHtml } from "./renderHtml";
+// import { renderHtml } from "./renderHtml";
 
 export default {
     async fetch(request, env): Promise<Response> {
@@ -20,7 +20,7 @@ export default {
             console.log("results.results ", results.results);
             results.results[3] = { pathname: pathname };
 
-            return new Response(renderHtml(JSON.stringify(results, null, 2)), {
+            return new Response(JSON.stringify(results, null, 2), {
                 headers: {
                     "content-type": "text/html",
                 },
@@ -28,7 +28,13 @@ export default {
         }
 
         if (request.method === "POST") {
-            const body: { numeros: { hiragana: string; kanji: string; castellano: string }[] } = await request.json();
+            const body: {
+                numeros: {
+                    hiragana: string;
+                    kanji: string;
+                    castellano: string;
+                }[];
+            } = await request.json();
 
             // Usa for...of en lugar de forEach para manejar await correctamente
             for (const e of body.numeros) {
