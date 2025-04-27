@@ -8,18 +8,7 @@ export default {
         console.log("request.method ", request.method);
 
         if (request.method === "GET") {
-            let stmt;
-            let results;
-            if (pathname === "/num") {
-                stmt = await db.prepare("SELECT * FROM numeros");
-            } else {
-                stmt = env.DB.prepare("SELECT * FROM comments LIMIT 3");
-            }
-            results = await stmt.all();
-            console.log("results ", results);
-            console.log("results.results ", results.results);
-            results.results[3] = { pathname: pathname };
-
+            const results = await getData(db, pathname);
             return new Response(JSON.stringify(results, null, 2), {
                 headers: {
                     "content-type": "text/html",
@@ -36,42 +25,53 @@ export default {
                 }[];
             } = await request.json();
 
-            // Usa for...of en lugar de forEach para manejar await correctamente
             for (const e of body.numeros) {
-                const { hiragana, kanji, castellano } = e; // Extrae de 'e' (el elemento actual), no de 'body'
                 console.log("Insertando:", e);
 
-                try {
-                    const { results } = await db
-                        .prepare(
-                            "INSERT INTO numeros (palabra_hiragana, palabra_kanji, palabra_castellano) VALUES (?, ?, ?)"
-                        )
-                        .bind(hiragana, kanji, castellano)
-                        .run();
-                    console.log("Insertado correctamente:", results);
-                } catch (error) {
-                    console.error("Error al insertar " + e + " :", error);
-                }
+                await insertData(db, "numeros", {
+                    palabra_hiragana: e.hiragana,
+                    palabra_kanji: e.kanji,
+                    palabra_castellano: e.castellano,
+                });
             }
-
-            /*const body = await request.json();
-      body.numeros.forEach(e => {
-        const { hiragana, kanji, castellano } = body;
-        console.log("e ", e)
-        const { results } = await db
-                    .prepare("INSERT INTO numeros (palabra_hiragana, palabra_kanji, palabra_castellano) VALUES (?, ?, ?)")
-                    .bind(hiragana, kanji, castellano)
-                    .run();
-      });
-
-      
-                return new Response(JSON.stringify({ message: 'User created successfully', id: results.lastRowId }), {
-                    status: 201,
-                    headers: { 'Content-Type': 'application/json' },
-                });*/
         }
 
-        // Return a default response if no conditions are met
         return new Response("Not Found", { status: 404 });
     },
 } satisfies ExportedHandler<Env>;
+
+const getData = async (db: D1Database, pathname: string) => {
+    let stmt;
+    if (pathname === "/num") {
+        stmt = await db.prepare("SELECT * FROM numeros");
+    } else {
+        stmt = db.prepare("SELECT * FROM comments LIMIT 3");
+    }
+    const results = await stmt.all();
+    console.log("results ", results);
+    console.log("results.results ", results.results);
+    results.results[3] = { pathname: pathname };
+    return results;
+};
+
+const insertData = async (
+    db: D1Database,
+    tableName: string,
+    data: Record<string, any>
+): Promise<void> => {
+    const columns = Object.keys(data).join(", ");
+    const placeholders = Object.keys(data).map(() => "?").join(", ");
+    const values = Object.values(data);
+
+    try {
+        const { results } = await db
+            .prepare(
+                `INSERT INTO ${tableName} (${columns}) VALUES (${placeholders})`
+            )
+            .bind(...values)
+            .run();
+        console.log("Insertado correctamente:", results);
+    } catch (error) {
+        console.error("Error al insertar datos:", error);
+    }
+};
