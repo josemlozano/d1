@@ -50,11 +50,30 @@ export default {
         console.log("pathname ", pathname);
         console.log("request.method ", request.method);
 
+        // Configurar headers CORS básicos
+        const corsHeaders = {
+            "Access-Control-Allow-Origin": "http://localhost:3000", // Cambia a * en producción si es necesario
+            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type",
+        };
+
+        // Manejar solicitudes OPTIONS (preflight)
+        if (request.method === "OPTIONS") {
+            return new Response(null, {
+                headers: {
+                    ...corsHeaders,
+                    Allow: "GET, POST, OPTIONS",
+                },
+                status: 204,
+            });
+        }
+
         if (request.method === "GET") {
             const results = await getData(db, pathname);
             return new Response(JSON.stringify(results, null, 2), {
                 headers: {
-                    "content-type": "text/html",
+                    ...corsHeaders,
+                    "Content-Type": "application/json", // Cambiado a JSON
                 },
             });
         }
@@ -66,16 +85,24 @@ export default {
             if (route) {
                 const items = body[route.key] ?? [];
                 for (const item of items) {
-                    console.log("Insertando:", item);
                     await insertData(db, route.table, route.mapData(item));
                 }
-                return new Response("Datos insertados correctamente.", { status: 200 });
+                return new Response("Datos insertados correctamente.", {
+                    status: 200,
+                    headers: corsHeaders,
+                });
             }
 
-            return new Response("Ruta no válida.", { status: 404 });
+            return new Response("Ruta no válida.", {
+                status: 404,
+                headers: corsHeaders,
+            });
         }
 
-        return new Response("Not Found", { status: 404 });
+        return new Response("Método no permitido", {
+            status: 405,
+            headers: corsHeaders,
+        });
     },
 } satisfies ExportedHandler<Env>;
 
