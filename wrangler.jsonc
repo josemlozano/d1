@@ -1,0 +1,16 @@
+{
+  "compatibility_date": "2025-04-01",
+  "main": "src/index.ts",
+  "name": "d1",
+  "upload_source_maps": true,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_id": "5f961c68-a8d0-4f13-8549-ecef37fe5e76",
+      "database_name": "vocabulario"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}
